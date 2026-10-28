@@ -1,79 +1,103 @@
 # Hubert Paszkiewicz – konsultant Raypath
 
-Strona-wizytówka niezależnego konsultanta Raypath International. Statyczna strona (HTML + CSS + JS, bez frameworków), hostowana za darmo na **Cloudflare Pages** z kodem na **GitHubie**.
+Strona-wizytówka z panelem administracyjnym. Hosting: **Cloudflare Pages** (darmowy plan) + **GitHub**. Treści zapisane w panelu trafiają do bazy **Cloudflare KV** i od razu widzą je wszyscy odwiedzający.
 
-Sprzedaż odbywa się w oficjalnym sklepie konsultanta Raypath – strona kieruje tam wszystkie przyciski „Sklep”.
+Sprzedaż odbywa się w oficjalnym sklepie konsultanta Raypath – przyciski „Sklep” prowadzą tam.
 
-## Struktura
+## Co jest w repozytorium
 
 ```
-index.html          strona główna (cała treść, style i skrypty)
-404.html            strona „nie znaleziono”
-_headers            nagłówki bezpieczeństwa i cache dla Cloudflare Pages
-robots.txt          informacja dla wyszukiwarek
-sitemap.xml         mapa strony dla Google
-favicon.svg         ikona w karcie przeglądarki
-img/                portret, obrazek do udostępnień (og-image.jpg), ikona iPhone
-fonts/              fonty Cormorant Garamond i Jost (lokalnie – bez Google Fonts)
+public/            strona (to Cloudflare udostępnia odwiedzającym)
+  index.html       strona główna (wstępnie wyrenderowana treść – dla Google)
+  admin/           panel administracyjny  →  https://twoja-strona/admin/
+  js/ css/ fonts/ img/
+  _headers         nagłówki bezpieczeństwa i cache
+  _routes.json     które adresy obsługuje serwer (/ i /api/*)
+functions/         serwer Cloudflare (logowanie, zapis treści, zdjęcia, historia)
 ```
 
-Strona nie wysyła żadnych zapytań do zewnętrznych serwerów, nie używa cookies ani narzędzi śledzących. Formularz kontaktowy otwiera program pocztowy odwiedzającego (mailto) – nic nie jest zapisywane.
+Kod serwera z folderu `functions/` **nie jest dostępny** pod żadnym adresem strony.
 
-## Wdrożenie – krok po kroku
+## Wdrożenie krok po kroku
 
 ### 1. GitHub
-1. Zaloguj się na github.com → **New repository**.
-2. Nazwa: `hubert-raypath`, widoczność **Public** lub **Private** (obie działają z Cloudflare). Nie zaznaczaj „Add a README”.
-3. Kliknij **uploading an existing file**, przeciągnij **zawartość** folderu (pliki i foldery `img`, `fonts` – nie sam folder nadrzędny) i zatwierdź **Commit changes**.
-
-   Albo z terminala, w tym folderze:
+1. github.com → **New repository** → nazwa np. `hubert-raypath`. Zalecana widoczność: **Private**.
+2. Wgraj **zawartość** paczki (foldery `public`, `functions` i pliki z głównego katalogu) – przez **uploading an existing file** albo z terminala:
    ```bash
    git init -b main
    git add -A
-   git commit -m "Pierwsza wersja strony"
+   git commit -m "Strona Huberta Paszkiewicza"
    git remote add origin https://github.com/TWOJ-LOGIN/hubert-raypath.git
    git push -u origin main
    ```
 
-### 2. Cloudflare Pages
-1. dash.cloudflare.com → **Workers & Pages** → **Create** → zakładka **Pages** → **Connect to Git**.
-2. Wybierz repozytorium `hubert-raypath` → **Begin setup**.
-3. Ustawienia budowania:
-   - **Project name:** `hubert-raypath` → adres będzie `https://hubert-raypath.pages.dev`
+### 2. Baza KV (raz)
+dash.cloudflare.com → **Storage & Databases → KV** (albo **Workers & Pages → KV**) → **Create a namespace** → nazwa np. `hubert-cms` → **Add**.
+
+### 3. Projekt Cloudflare Pages
+1. **Workers & Pages → Create → Pages → Connect to Git** → wybierz repozytorium.
+2. Ustawienia budowania:
+   - **Project name:** `hubert-raypath` → adres `https://hubert-raypath.pages.dev`
    - **Production branch:** `main`
    - **Framework preset:** `None`
    - **Build command:** *(puste)*
-   - **Build output directory:** `/`
-4. **Save and Deploy**. Po ok. minucie strona działa.
+   - **Build output directory:** `public`
+3. **Save and Deploy**.
+4. Podłącz bazę: projekt → **Settings → Bindings** (w starszym panelu: *Settings → Functions → KV namespace bindings*) → **Add → KV namespace**:
+   - **Variable name:** `CMS` (dokładnie tak, wielkimi literami)
+   - **KV namespace:** `hubert-cms`
+5. **Deployments → ostatnie wdrożenie → ⋯ → Retry deployment** (powiązanie działa od następnego wdrożenia).
 
-Każda zmiana wypchnięta na GitHub (`main`) publikuje się automatycznie.
+### 4. Pierwsze logowanie
+- Wejdź na `https://hubert-raypath.pages.dev/admin/`
+- Login: `admin`, hasło: `hubert2026`
+- **Od razu zmień hasło** w zakładce **Hasło** (panel o tym przypomina). Nowe hasło jest zapisywane wyłącznie jako skrót PBKDF2 – nikt, także autor strony, nie odczyta go z bazy.
 
-### 3. Jeśli adres jest inny niż `hubert-raypath.pages.dev`
-Gdy nazwa projektu była zajęta albo podpinasz własną domenę, zamień adres `https://hubert-raypath.pages.dev` na właściwy w plikach:
-- `index.html` – `canonical`, `og:url`, `og:image`, dane strukturalne (JSON-LD),
-- `sitemap.xml`,
-- `robots.txt`.
+Opcjonalnie: zamiast `hubert2026` możesz ustawić własne hasło startowe w **Settings → Variables and Secrets** jako sekret `ADMIN_PASSWORD` (działa do pierwszej zmiany hasła w panelu).
 
-### 4. Własna domena (później)
-Cloudflare Pages → projekt → **Custom domains** → **Set up a custom domain**. Domenę najprościej kupić od razu w Cloudflare (Domain Registration) albo przenieść jej DNS do Cloudflare. Potem zaktualizuj adresy z punktu 3.
+### 5. Gdy adres jest inny niż `hubert-raypath.pages.dev`
+Zmień adres w `build.js` (stała `SITE_URL`) w paczce źródłowej i zbuduj ponownie (`node build.js`) albo podmień `https://hubert-raypath.pages.dev/` ręcznie w `public/index.html`, `public/sitemap.xml` i `public/robots.txt`.
 
-### 5. Google
-Po publikacji dodaj stronę w **Google Search Console** (weryfikacja przez rekord DNS lub plik) i zgłoś `sitemap.xml`. Warto też założyć **Profil Firmy w Google** z linkiem do strony.
+### 6. Własna domena (później)
+Projekt → **Custom domains → Set up a custom domain**. Potem punkt 5.
 
-## Najczęstsze zmiany
+## Jak działa panel
 
-| Co zmienić | Gdzie |
+| Funkcja | Gdzie |
 |---|---|
-| Adres sklepu Raypath | `index.html` → na dole `const SHOP_URL = "..."` |
-| E-mail formularza | `index.html` → `const EMAIL = "..."` oraz linki `mailto:` |
-| Telefon | `index.html` → szukaj `510085688` i `510 085 688` (też w `404.html`) |
-| Zdjęcie | podmień `img/hubert-paszkiewicz.webp` (kwadrat, min. 600×600 px, ta sama nazwa) |
-| Rekomendacje w „Dobór w 30 sekund” | `index.html` → obiekt `REC` w skrypcie |
+| Edycja treści każdej sekcji | Sekcje → kliknij sekcję |
+| Podgląd na żywo (sekcja / cała strona, komputer / tablet / telefon) | prawa kolumna; na mniejszych ekranach przycisk **Podgląd** |
+| Kolejność sekcji | przeciągnij za uchwyt ⋮⋮ albo strzałki ↑ ↓ (klawiatura: Alt + strzałki) |
+| Ukrycie bez usuwania | ikona oka |
+| Nowa sekcja (tekst, tekst ze zdjęciem, oś czasu, opinie, FAQ, baner…) | **+ Dodaj sekcję** |
+| Duplikowanie, usuwanie, przywrócenie treści początkowej | przyciski nad edytorem sekcji |
+| Menu: czy sekcja jest w menu i pod jaką nazwą | dół edytora sekcji („Wygląd i menu”) |
+| Zdjęcia | pole zdjęcia → **Wgraj zdjęcie** (panel sam zmniejsza je do WebP) |
+| Telefon, e-mail, adres sklepu, opis w Google, stopka, animacja otwarcia | **Ustawienia** |
+| Zmiana hasła | **Hasło** (wylogowuje pozostałe urządzenia) |
+| Kopia w pliku, historia zapisów z 60 dni, powrót do wersji początkowej | **Kopie** |
 
-## Do potwierdzenia przez Huberta przed promocją
-- Program wymiany zużytych czyścików za pół ceny – czy działa w Polsce przez jego sklep.
+Zabezpieczenia: blokada po 8 błędnych próbach logowania (15 minut), sesja wygasa po 8 godzinach, wykrywanie zapisu z dwóch urządzeń naraz, szkic niezapisanych zmian w przeglądarce, Ctrl/Cmd + S zapisuje.
+
+Bez podłączonej bazy panel działa w **trybie lokalnym** – wyraźnie to pokazuje, a zmiany zapisuje tylko w tej przeglądarce.
+
+## Formularz kontaktowy
+Domyślnie otwiera program pocztowy klienta z gotową wiadomością. W **Ustawieniach** można przełączyć na **FormSubmit.co** – wiadomość trafia wtedy prosto na skrzynkę; przy pierwszym wysłaniu FormSubmit przyśle e-mail z linkiem aktywacyjnym.
+
+Formularz ma walidację pól, pułapkę na boty i minimalny czas wypełnienia.
+
+## Limity darmowego planu Cloudflare
+KV: 100 000 odczytów i 1 000 zapisów dziennie – z ogromnym zapasem dla strony-wizytówki (jedno wejście na stronę = jeden odczyt, jeden zapis w panelu = 2–3 zapisy).
+
+## Do potwierdzenia przez Huberta
+- Program wymiany zużytych czyścików za pół ceny – czy działa przez jego sklep.
 - Bezpłatne doradztwo – strona to obiecuje.
-- Opisy technologii pochodzą z materiałów producenta i są tak oznaczone.
+- Oś czasu historii Raypath powstała z publicznych źródeł (oficjalna strona marki, KRS, artykuły branżowe); część etapów nie ma dokładnych dat. Można je doprecyzować w panelu.
+- Sekcja **Opinie klientów** jest ukryta – włącz ją, gdy pojawią się prawdziwe opinie (za zgodą klientów).
+
+## Praca na źródłach (dla programisty)
+Paczka źródłowa: `src/` + `build.js`. Polecenie `node build.js` tworzy `dist/` (to, co idzie na GitHub).
+Test lokalny z bazą: `npx wrangler pages dev public --kv CMS` uruchomione w `dist/`.
 
 ---
 Projekt strony: [Strony AI Wrocław](https://stronyaiwroclaw.pl)
