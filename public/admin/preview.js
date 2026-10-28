@@ -24,7 +24,7 @@ document.addEventListener("click", (e) => {
   const a = e.target.closest("a[href]");
   if (!a) return;
   const href = a.getAttribute("href");
-  if (href.startsWith("#") && href.length > 1) { e.preventDefault(); const t = document.getElementById(href.slice(1)); t && t.scrollIntoView(); return; }
+  if (href.startsWith("#") && href.length > 1) { e.preventDefault(); e.stopPropagation(); const t = document.getElementById(href.slice(1)); t && t.scrollIntoView(); return; }
   e.preventDefault();
 }, true);
 document.addEventListener("submit", (e) => { e.preventDefault(); e.stopImmediatePropagation(); }, true);

@@ -66,7 +66,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .mode.local{background:#f6e3b4;color:#5b3d00}
 .mode .long{opacity:.85}
 @media (max-width:820px){.mode .long{display:none}}
-.dirty{font-size:.82rem;color:var(--champ-l);white-space:nowrap}
+.dirty{font-size:.82rem;color:var(--champ-l);white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.dirty::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--champ)}
+.dirty[data-kind=ok]::before{background:#6fcf8f}
+.dirty[data-kind=busy]::before{animation:blink .8s infinite alternate}
+.dirty[data-kind=err]{color:#ffb4a9}.dirty[data-kind=err]::before{background:#ff7a6b}
+@keyframes blink{to{opacity:.2}}
 .notice{flex:none;padding:10px max(14px,env(safe-area-inset-left));font-size:.88rem;background:#fbf1d9;color:#5b3d00;border-bottom:1px solid #eedcae;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .notice.err{background:#fdecea;color:#7a1a14;border-color:#f3c6c1}
 .notice .b{min-height:30px;padding:3px 10px}
@@ -200,8 +205,9 @@ button,input,select,textarea{font:inherit;color:inherit}
   .panes button[data-pane=list]{display:block}
   .row2,.lnk{grid-template-columns:1fr}
   .bar .b{padding:7px 10px}
-  .dirty{font-size:0}
-  .dirty::before{content:"●";font-size:1rem;color:var(--champ)}
+  .dirty{font-size:0;gap:0}
+  .dirty::before{width:10px;height:10px}
+  #save{display:none}
   .ed-head h1{font-size:1.6rem}
   .toasts{bottom:84px}
 }

@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Panel administracyjny – Hubert Paszkiewicz</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/admin/admin.css?v=mvsjz3mz">
-<script type="module" src="/admin/admin.js?v=mvsjz3mz"></script>
+<link rel="stylesheet" href="/admin/admin.css?v=mvsl5h80">
+<script type="module" src="/admin/admin.js?v=mvsl5h80"></script>
 </head>
 <body data-view="sections" data-pane="edit">
 
@@ -37,9 +37,9 @@
       <span class="mode" id="mode-badge"></span>
     </div>
     <div class="bar-r">
-      <span class="dirty" id="dirty" hidden>● Niezapisane zmiany</span>
+      <span class="dirty" id="dirty" role="status" aria-live="polite" hidden></span>
       <a class="b b-ghost hide-s" href="/" target="_blank" rel="noopener">Zobacz stronę ↗</a>
-      <button class="b b-pri" id="save" type="button" disabled>Zapisz</button>
+      <button class="b b-pri" id="save" type="button" disabled title="Zmiany zapisują się automatycznie – ten przycisk zapisuje od razu">Zapisz teraz</button>
       <button class="b b-ghost" id="logout" type="button" title="Wyloguj">Wyloguj</button>
     </div>
   </header>
@@ -72,7 +72,7 @@
         </div>
       </div>
       <div class="pv-stage" id="pv-stage">
-        <iframe id="pv" title="Podgląd strony" src="/admin/preview.html?v=mvsjz3mz"></iframe>
+        <iframe id="pv" title="Podgląd strony" src="/admin/preview.html?v=mvsl5h80"></iframe>
       </div>
       <p class="pv-foot" id="pv-foot"></p>
     </section>

@@ -181,6 +181,8 @@ export const SETTINGS_FIELDS = [
   { k: "joinUrl", label: "Adres rejestracji „Dołącz” – link {dolacz}", type: "text" },
   { k: "formMode", label: "Wysyłka formularza", type: "select", options: { mailto: "Otwórz program pocztowy klienta (mailto)", formsubmit: "Wyślij przez FormSubmit.co (bez programu pocztowego)" } },
   { k: "intro", label: "Animacja przy otwarciu strony", type: "bool" },
+  { k: "navEffect", label: "Przejście do sekcji po kliknięciu w menu", type: "select", options: { iris: "Koło – rozchodzi się od miejsca kliknięcia (polecane)", curtain: "Kurtyna z monogramem", glide: "Płynny lot ze złotą linią postępu", none: "Zwykłe przewijanie" } },
+  { k: "adminLink", label: "Ikona logowania do panelu w lewym dolnym rogu strony", type: "bool" },
   { k: "seoTitle", label: "Tytuł w Google (do 60 znaków)", type: "text" },
   { k: "seoDescription", label: "Opis w Google (do 160 znaków)", type: "textarea" },
   { k: "footerLegal", label: "Stopka – informacja prawna", type: "textarea" },

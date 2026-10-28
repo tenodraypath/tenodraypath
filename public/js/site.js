@@ -219,9 +219,96 @@ function forms() {
   });
 }
 
+/* ---------- przejścia do sekcji ---------- */
+let busy = false;
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+function targetY(el) {
+  if (el.classList.contains("hero") || el.id === "tresc") return 0;
+  const head = document.querySelector(".top"), hh = head ? head.offsetHeight : 0;
+  const pad = parseFloat(getComputedStyle(el).paddingTop) || 0;
+  const y = el.getBoundingClientRect().top + scrollY + pad - hh - (innerWidth < 760 ? 16 : 26);
+  return Math.max(0, Math.min(y, document.documentElement.scrollHeight - innerHeight));
+}
+function arrive(el) {
+  el.classList.remove("arrive"); void el.offsetWidth; el.classList.add("arrive");
+  $$(".reveal, .tl-i", el).forEach((x) => x.classList.add("in"));
+  setTimeout(() => el.classList.remove("arrive"), 1600);
+  const h = el.querySelector("h2, h1");
+  if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+}
+function glide(to) {
+  return new Promise((res) => {
+    const from = scrollY, dist = to - from, head = document.querySelector(".top");
+    const dur = Math.min(1300, Math.max(550, Math.abs(dist) * 0.45));
+    const t0 = performance.now();
+    let stop = false;
+    const cancel = () => { stop = true; };
+    addEventListener("wheel", cancel, { passive: true, once: true }); addEventListener("touchstart", cancel, { passive: true, once: true });
+    head && head.classList.add("gliding");
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / dur);
+      if (!stop) scrollTo(0, from + dist * ease(k));
+      head && head.style.setProperty("--glide", k.toFixed(3));
+      if (k < 1 && !stop) requestAnimationFrame(step);
+      else { removeEventListener("wheel", cancel); removeEventListener("touchstart", cancel); setTimeout(() => { head && head.classList.remove("gliding"); head && head.style.removeProperty("--glide"); }, 250); res(); }
+    };
+    requestAnimationFrame(step);
+  });
+}
+async function goTo(el, mode, pt) {
+  if (busy) return;
+  busy = true;
+  try {
+    if (reduce() || mode === "none" || !document.body.animate) { scrollTo(0, targetY(el)); arrive(el); return; }
+    if (mode === "glide") { await glide(targetY(el)); arrive(el); return; }
+    const mono = document.querySelector(".mono b"), role = document.querySelector(".mono span");
+    const ov = document.createElement("div");
+    ov.className = "navfx navfx-" + mode; ov.setAttribute("aria-hidden", "true");
+    const m = document.createElement("span"), sm = document.createElement("small");
+    m.className = "m"; m.textContent = mono ? mono.textContent : "";
+    sm.textContent = (el.querySelector(".kicker") || el.querySelector("h2") || {}).textContent || (role ? role.textContent : "");
+    m.append(sm); ov.append(m);
+    document.body.append(ov);
+    const W = innerWidth, H = innerHeight, opt = { easing: "cubic-bezier(.7,0,.3,1)", fill: "forwards" };
+    if (mode === "curtain") {
+      await ov.animate([{ transform: "translateY(100%)" }, { transform: "translateY(0)" }], Object.assign({ duration: 460 }, opt)).finished;
+      scrollTo(0, targetY(el)); arrive(el);
+      await new Promise((r) => setTimeout(r, 160));
+      await ov.animate([{ transform: "translateY(0)" }, { transform: "translateY(-100%)" }], Object.assign({ duration: 560 }, opt)).finished;
+    } else {
+      const x = pt && pt.x ? pt.x : W / 2, y = pt && pt.y ? pt.y : H / 2;
+      const r = Math.hypot(Math.max(x, W - x), Math.max(y, H - y)) + 20;
+      await ov.animate([{ clipPath: `circle(0px at ${x}px ${y}px)` }, { clipPath: `circle(${r}px at ${x}px ${y}px)` }], Object.assign({ duration: 560 }, opt)).finished;
+      scrollTo(0, targetY(el)); arrive(el);
+      await new Promise((r2) => setTimeout(r2, 140));
+      const cx = W / 2, cy = H * 0.45, R = Math.hypot(W, H);
+      await ov.animate([{ clipPath: `circle(${R}px at ${cx}px ${cy}px)` }, { clipPath: `circle(0px at ${cx}px ${cy}px)` }], Object.assign({ duration: 620 }, opt)).finished;
+    }
+    ov.remove();
+  } finally {
+    busy = false;
+    if (history.replaceState) history.replaceState(null, "", "#" + el.id);
+  }
+}
+function navigation() {
+  const onClick = (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey || a.classList.contains("skip")) return;
+    const id = decodeURIComponent(a.getAttribute("href").slice(1));
+    const el = id && document.getElementById(id);
+    if (!el) return;
+    e.preventDefault();
+    const head = document.querySelector(".top");
+    const pt = e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : null;
+    goTo(el, (head && head.dataset.fx) || "iris", pt);
+  };
+  document.addEventListener("click", onClick);
+  cleanups.push(() => document.removeEventListener("click", onClick));
+}
+
 export function init() {
   cleanups.forEach((f) => f()); cleanups = [];
-  menu(); observers(); calculators(); quizzes(); forms();
+  menu(); navigation(); observers(); calculators(); quizzes(); forms();
   $$(".year").forEach((y) => (y.textContent = new Date().getFullYear()));
 }
 

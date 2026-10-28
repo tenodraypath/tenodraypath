@@ -25,10 +25,12 @@
   --p:clamp(220px,26vw,330px);           /* średnica portretu */
   --d:0s;                                 /* opóźnienie wejścia hero (rośnie przy intro) */
   --ease:cubic-bezier(.22,.8,.24,1);
+  --sec-pad:clamp(52px,7vw,96px);
 }
 @media (min-width:1700px){html{font-size:18px}}
 *,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:var(--head-h)}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html.js{scroll-behavior:auto}
 body{margin:0;background:var(--stone);color:var(--ink);font:400 1.0625rem/1.7 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:clip;font-variant-numeric:lining-nums}
 img,svg{display:block;max-width:100%}
 a{color:inherit}
@@ -126,7 +128,7 @@ button{font:inherit}
 
 /* ===== Sekcje: tła ===== */
 section{scroll-margin-top:var(--head-h)}
-.sec{padding:clamp(64px,9vw,120px) 0;position:relative}
+.sec{padding:var(--sec-pad) 0;position:relative;scroll-margin-top:calc(var(--head-h) - var(--sec-pad) + 22px)}
 .sec h2{font-size:clamp(2rem,4vw,3.4rem)}
 .sec h2 em{font-style:italic;color:var(--wine)}
 .kicker{color:var(--wine);display:block;margin-bottom:14px}
@@ -363,15 +365,16 @@ section{scroll-margin-top:var(--head-h)}
 @keyframes rise{from{opacity:0;transform:translateY(28px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
 @keyframes grow{from{opacity:0;transform:scaleX(.2)}to{opacity:1;transform:none}}
 @keyframes zoomin{from{opacity:0;transform:scale(.82) rotate(-6deg)}to{opacity:1;transform:none}}
-.js .hero .hero-k{animation:rise .9s var(--ease) calc(var(--d) + .05s) both}
-.js .hero .h1a{animation:rise 1s var(--ease) calc(var(--d) + .15s) both}
-.js .hero .h1b{animation:rise 1s var(--ease) calc(var(--d) + .3s) both}
-.js .hero .hero-orn{animation:grow .9s var(--ease) calc(var(--d) + .45s) both}
-.js .hero .lead{animation:rise .9s var(--ease) calc(var(--d) + .55s) both}
-.js .hero .btns{animation:rise .9s var(--ease) calc(var(--d) + .68s) both}
-.js .hero .micro{animation:rise .9s var(--ease) calc(var(--d) + .8s) both}
-.js .hero .portrait{animation:zoomin 1.2s var(--ease) calc(var(--d) + .5s) both}
-.js .top{animation:rise .8s var(--ease) calc(var(--d) * .9) both}
+.js .hero .hero-k{animation:rise .9s var(--ease) calc(var(--d) + .05s) backwards}
+.js .hero .h1a{animation:rise 1s var(--ease) calc(var(--d) + .15s) backwards}
+.js .hero .h1b{animation:rise 1s var(--ease) calc(var(--d) + .3s) backwards}
+.js .hero .hero-orn{animation:grow .9s var(--ease) calc(var(--d) + .45s) backwards}
+.js .hero .lead{animation:rise .9s var(--ease) calc(var(--d) + .55s) backwards}
+.js .hero .btns{animation:rise .9s var(--ease) calc(var(--d) + .68s) backwards}
+.js .hero .micro{animation:rise .9s var(--ease) calc(var(--d) + .8s) backwards}
+.js .hero .portrait{animation:zoomin 1.2s var(--ease) calc(var(--d) + .5s) backwards}
+@keyframes topin{from{opacity:0}}
+.js .top{animation:topin .8s ease calc(var(--d) * .9) backwards}
 html.skip-anim .hero *,html.skip-anim .top{animation-delay:0s !important}
 
 /* ===== Efekt otwarcia ===== */
@@ -399,6 +402,27 @@ html.hp-intro .curtain::before{content:"";position:absolute;inset:22px;border:1p
 @keyframes iris{to{--hole:150%}}
 @keyframes gone{to{visibility:hidden;opacity:0}}
 html.hp-intro-done .curtain{display:none !important}
+
+
+/* ===== Ikona logowania do panelu ===== */
+.adm-link{position:fixed;left:max(14px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));z-index:95;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(62,16,28,.82);color:var(--champ-l);border:1px solid rgba(201,180,138,.45);opacity:.55;transition:opacity .25s,transform .25s var(--ease),background .25s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.adm-link svg{width:18px;height:18px}
+.adm-link:hover,.adm-link:focus-visible{opacity:1;transform:scale(1.08);background:var(--wine-d)}
+body.menu-open .adm-link{display:none}
+
+/* ===== Przejścia do sekcji ===== */
+.navfx{position:fixed;inset:0;z-index:450;pointer-events:none;background:radial-gradient(circle at 50% 45%,#5a1a2a 0%,#2a0a13 80%);display:grid;place-items:center}
+.navfx::before{content:"";position:absolute;inset:22px;border:1px solid rgba(201,180,138,.35)}
+.navfx .m{font-family:var(--serif);font-size:clamp(2.6rem,8vmin,4rem);color:#fff;letter-spacing:.08em;opacity:0;animation:fxm .5s var(--ease) .18s forwards;text-align:center;line-height:1}
+.navfx .m small{display:block;margin-top:14px;font-family:var(--sans);font-size:.62rem;letter-spacing:.34em;text-transform:uppercase;color:var(--champ)}
+@keyframes fxm{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--champ),var(--champ-l),var(--champ));transform:scaleX(var(--glide,0));transform-origin:left;opacity:0;transition:opacity .3s}
+.top.gliding::after{opacity:1}
+.arrive .kicker{animation:arrK 1s var(--ease) both}
+.arrive h2{animation:rise 1s var(--ease) .08s both}
+.arrive .orn{animation:grow .9s var(--ease) .2s both}
+@keyframes arrK{from{opacity:0;letter-spacing:.7em}to{opacity:1}}
+@media (max-width:760px){.navfx::before{inset:12px}}
 
 /* ===================================================================
    RESPONSYWNOŚĆ
@@ -451,6 +475,7 @@ html.hp-intro-done .curtain{display:none !important}
   .mbar a{flex:1;display:grid;place-items:center;min-height:56px;text-decoration:none;font-size:.76rem;letter-spacing:.2em;text-transform:uppercase;color:var(--champ-l)}
   .mbar a+a{background:var(--champ);color:var(--wine-d)}
   .foot{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+  .adm-link{bottom:calc(56px + 12px + env(safe-area-inset-bottom));width:36px;height:36px}
   .btns .btn{flex:1 1 260px}
 }
 @media (max-width:600px){
@@ -510,6 +535,6 @@ html.hp-intro-done .curtain{display:none !important}
   html.hp-intro .curtain{display:none}
 }
 @media print{
-  .top,.mbar,.curtain,.cform,.portrait .ring{display:none !important}
+  .top,.mbar,.curtain,.cform,.portrait .ring,.adm-link,.navfx{display:none !important}
   .reveal,.tl-card{opacity:1 !important;transform:none !important}
 }

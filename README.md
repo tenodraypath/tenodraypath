@@ -74,10 +74,13 @@ Projekt → **Custom domains → Set up a custom domain**. Potem punkt 5.
 | Menu: czy sekcja jest w menu i pod jaką nazwą | dół edytora sekcji („Wygląd i menu”) |
 | Zdjęcia | pole zdjęcia → **Wgraj zdjęcie** (panel sam zmniejsza je do WebP) |
 | Telefon, e-mail, adres sklepu, opis w Google, stopka, animacja otwarcia | **Ustawienia** |
+| Efekt przejścia do sekcji (koło, kurtyna, płynny lot, zwykłe przewijanie) i ikona logowania w rogu strony | **Ustawienia** |
 | Zmiana hasła | **Hasło** (wylogowuje pozostałe urządzenia) |
 | Kopia w pliku, historia zapisów z 60 dni, powrót do wersji początkowej | **Kopie** |
 
-Zabezpieczenia: blokada po 8 błędnych próbach logowania (15 minut), sesja wygasa po 8 godzinach, wykrywanie zapisu z dwóch urządzeń naraz, szkic niezapisanych zmian w przeglądarce, Ctrl/Cmd + S zapisuje.
+**Zapis jest automatyczny** – półtorej sekundy po ostatniej zmianie (status „Zapisano · godzina” w górnym pasku). Przycisk „Zapisz teraz” i Ctrl/Cmd + S zapisują od razu. Historia zapisów tworzy kopię najwyżej co 10 minut.
+
+Zabezpieczenia: blokada po 8 błędnych próbach logowania (15 minut), sesja wygasa po 8 godzinach, wykrywanie zapisu z dwóch urządzeń naraz (autozapis wtedy się wstrzymuje i pyta), szkic zmian w przeglądarce na wypadek braku internetu.
 
 Bez podłączonej bazy panel działa w **trybie lokalnym** – wyraźnie to pokazuje, a zmiany zapisuje tylko w tej przeglądarce.
 

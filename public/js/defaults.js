@@ -14,6 +14,8 @@ export const DEFAULT_SETTINGS = {
   seoTitle: "Hubert Paszkiewicz – konsultant Raypath | sprzątanie samą wodą, ekologiczna pielęgnacja",
   seoDescription: "Raypath: czyściki z mikrowłókien do sprzątania samą wodą, pielęgnacja ciała i zestawy. Kupuj z osobistym doradztwem u konsultanta Huberta Paszkiewicza.",
   intro: true,
+  navEffect: "iris",
+  adminLink: true,
   formMode: "mailto",
   footerLegal: "Raypath® i nazwy produktów są znakami towarowymi Raypath International. To strona niezależnego konsultanta, nie oficjalna witryna producenta. Opisy technologii pochodzą z materiałów producenta. Zamówienia realizuje Raypath International zgodnie z regulaminem sklepu.",
   footerPrivacy: "Strona nie używa plików cookies ani narzędzi śledzących. Formularz kontaktowy nie zapisuje danych na stronie."

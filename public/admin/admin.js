@@ -9,6 +9,8 @@ const DEV = { desktop: 1280, tablet: 820, phone: 390 };
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const clone = (o) => JSON.parse(JSON.stringify(o));
+// porównanie treści bez pól technicznych (numer wersji, czas zapisu)
+const ck = (o) => JSON.stringify(o, (k, v) => (k === "rev" || k === "savedAt" ? undefined : v));
 
 const S = {
   mode: null, localReason: "", token: sessionStorage.getItem(TK), user: DEF_USER, isDefault: false,
@@ -121,7 +123,7 @@ $("#login-form").addEventListener("submit", async (e) => {
     }
     $("#lg-pass").value = "";
     $("#login").hidden = true;
-    if (S.started) { toast("Zalogowano ponownie."); notices(); } else start();
+    if (S.started) { toast("Zalogowano ponownie."); notices(); if (S.dirty) save(false, true); } else start();
   } finally { btn.disabled = false; }
 });
 $$("[data-toggle-pass]").forEach((b) => b.addEventListener("click", () => {
@@ -145,7 +147,7 @@ function start() {
   let raw = S.remote;
   if (S.mode === "local") { try { raw = JSON.parse(localStorage.getItem(LOCAL) || "null"); } catch (e) { raw = null; } }
   S.content = normalize(raw || defaultContent());
-  S.saved = JSON.stringify(S.content);
+  S.saved = ck(S.content);
   S.sel = (S.content.sections[0] || {}).id || null;
   S.started = true;
   $("#app").hidden = false;
@@ -180,7 +182,7 @@ function draftCheck() {
   try { d = JSON.parse(localStorage.getItem(DRAFT) || "null"); } catch (e) {}
   if (!d || !d.content) return;
   const dc = normalize(d.content);
-  if (JSON.stringify(dc) === S.saved) { localStorage.removeItem(DRAFT); return; }
+  if (ck(dc) === S.saved) { localStorage.removeItem(DRAFT); return; }
   const when = new Date(d.at).toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "short" });
   const n = $("#notice");
   n.hidden = false;
@@ -189,36 +191,63 @@ function draftCheck() {
     h("button", { type: "button", class: "b", onclick: () => { localStorage.removeItem(DRAFT); notices(); } }, "Odrzuć"));
 }
 
-/* ---------- zmiany i zapis ---------- */
-let tDraft = 0, tPrev = 0;
+/* ---------- zmiany i zapis (automatyczny) ---------- */
+let tDraft = 0, tPrev = 0, tAuto = 0, saving = false, again = false;
+const AUTO_DELAY = 1500;
+function status(kind, text) {
+  const d = $("#dirty");
+  d.hidden = false; d.dataset.kind = kind; d.textContent = text;
+}
 function changed(o = {}) {
-  S.dirty = JSON.stringify(S.content) !== S.saved;
-  $("#dirty").hidden = !S.dirty;
-  $("#save").disabled = !S.dirty;
+  S.dirty = ck(S.content) !== S.saved;
+  $("#save").disabled = !S.dirty || saving;
+  if (S.dirty && !saving) status("wait", "Zmiany czekają na zapis…");
   if (o.list) renderSide();
   if (o.editor) renderEditor();
   clearTimeout(tPrev); tPrev = setTimeout(() => sendPreview(!!o.scroll), o.now ? 0 : 220);
   clearTimeout(tDraft); tDraft = setTimeout(() => {
     try { S.dirty ? localStorage.setItem(DRAFT, JSON.stringify({ at: Date.now(), baseRev: S.rev, content: S.content })) : localStorage.removeItem(DRAFT); } catch (e) {}
   }, 800);
+  clearTimeout(tAuto);
+  if (S.dirty && !S.paused) tAuto = setTimeout(() => save(false, true), AUTO_DELAY);
 }
-function markSaved() { S.saved = JSON.stringify(S.content); try { localStorage.removeItem(DRAFT); } catch (e) {} changed(); }
+function markSaved(snapshot) {
+  S.saved = snapshot;
+  try { if (ck(S.content) === snapshot) localStorage.removeItem(DRAFT); } catch (e) {}
+}
+const hhmm = () => new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
 
-async function save(force = false) {
+async function save(force = false, auto = false) {
+  clearTimeout(tAuto);
   if (!S.dirty && !force) return;
-  const btn = $("#save"); btn.disabled = true; btn.textContent = "Zapisuję…";
+  if (saving) { again = true; return; }
+  saving = true; $("#save").disabled = true;
+  status("busy", "Zapisuję…");
+  const snapshot = ck(S.content);
+  let ok = false;
   try {
     if (S.mode === "server") {
-      const r = await api("/api/content", { method: "PUT", json: { content: S.content, baseRev: S.rev, force } });
-      if (r.ok) { S.rev = r.data.rev; S.content.rev = r.data.rev; markSaved(); toast("Zapisano. Zmiany są już widoczne na stronie.", "ok"); }
-      else if (r.status === 409) confirmBox("Ktoś zapisał zmiany w międzyczasie", "Na innym urządzeniu zapisano nowszą wersję strony. Zapisać Twoją wersję i nadpisać tamtą? (Poprzednia wersja trafi do zakładki Kopie.)", "Nadpisz i zapisz", () => { save(true); });
-      else if (r.status !== 401) toast((r.data && r.data.message) || "Nie udało się zapisać.", "err");
+      const r = await api("/api/content", { method: "PUT", json: { content: JSON.parse(snapshot), baseRev: S.rev, force } });
+      if (r.ok) { S.rev = r.data.rev; S.content.rev = r.data.rev; markSaved(snapshot); ok = true; }
+      else if (r.status === 409) {
+        S.paused = true; status("err", "Wstrzymano – konflikt wersji");
+        confirmBox("Ktoś zapisał zmiany w międzyczasie", "Na innym urządzeniu zapisano nowszą wersję strony. Zapisać Twoją wersję i nadpisać tamtą? (Poprzednia wersja trafi do zakładki Kopie.)", "Nadpisz i zapisz", () => { S.paused = false; setTimeout(() => save(true), 0); });
+      } else if (r.status === 401) status("err", "Zaloguj się, aby zapisać");
+      else { status("err", "Błąd zapisu – spróbuję ponownie"); if (!auto) toast((r.data && r.data.message) || "Nie udało się zapisać.", "err"); setTimeout(() => S.dirty && save(false, true), 8000); }
     } else {
-      try { localStorage.setItem(LOCAL, JSON.stringify(S.content)); markSaved(); toast("Zapisano w tej przeglądarce.", "ok"); }
-      catch (e) { toast("Brak miejsca w przeglądarce – usuń lub zmniejsz zdjęcia.", "err"); }
+      try { localStorage.setItem(LOCAL, snapshot); markSaved(snapshot); ok = true; }
+      catch (e) { status("err", "Brak miejsca w przeglądarce"); toast("Brak miejsca w przeglądarce – usuń lub zmniejsz zdjęcia.", "err"); }
     }
-  } finally { btn.textContent = "Zapisz"; btn.disabled = !S.dirty; }
+  } finally {
+    saving = false;
+    S.dirty = ck(S.content) !== S.saved;
+    $("#save").disabled = !S.dirty;
+    if (ok) status("ok", (S.mode === "server" ? "Zapisano · " : "Zapisano lokalnie · ") + hhmm());
+    if (ok && !auto) toast(S.mode === "server" ? "Zapisano. Zmiany są już widoczne na stronie." : "Zapisano w tej przeglądarce.", "ok");
+    if (S.dirty && !S.paused && (again || ok)) { again = false; clearTimeout(tAuto); tAuto = setTimeout(() => save(false, true), 400); }
+  }
 }
+async function flush() { clearTimeout(tAuto); if (S.dirty && !S.paused) await save(false, true); while (saving) await new Promise((r) => setTimeout(r, 100)); }
 
 /* ---------- widoki ---------- */
 function setView(v) {
@@ -549,8 +578,8 @@ function settingsEditor() {
     h("div", { class: "ed-head" }, h("div", null, h("div", { class: "type" }, "Cała strona"), h("h1", null, "Ustawienia"))),
     h("div", { class: "card" }, h("h2", null, "Dane i linki"), SETTINGS_FIELDS.slice(0, 7).map((f) => field(st, f))),
     st.formMode === "formsubmit" ? h("div", { class: "warn" }, "FormSubmit: przy pierwszej wiadomości na podany e-mail przyjdzie prośba o aktywację – kliknij link w tej wiadomości, potem formularz działa normalnie.") : null,
-    h("div", { class: "card" }, h("h2", null, "Wygląd i Google"), SETTINGS_FIELDS.slice(7, 11).map((f) => field(st, f))),
-    h("div", { class: "card" }, h("h2", null, "Stopka"), SETTINGS_FIELDS.slice(11).map((f) => field(st, f))));
+    h("div", { class: "card" }, h("h2", null, "Wygląd, efekty i Google"), SETTINGS_FIELDS.slice(7, 13).map((f) => field(st, f))),
+    h("div", { class: "card" }, h("h2", null, "Stopka"), SETTINGS_FIELDS.slice(13).map((f) => field(st, f))));
 }
 
 function passwordEditor() {
@@ -686,17 +715,19 @@ function bindOnce() {
   $("#save").addEventListener("click", () => save());
   $("#logout").addEventListener("click", () => {
     const go = async () => {
+      await flush();
       if (S.mode === "server") await api("/api/logout", { method: "POST" });
       sessionStorage.removeItem(TK); sessionStorage.removeItem(LOK); S.dirty = false; location.reload();
     };
-    S.dirty ? confirmBox("Wylogować bez zapisu?", "Masz niezapisane zmiany. Zostaną zachowane jako szkic w tej przeglądarce.", "Wyloguj", go) : go();
+    S.paused && S.dirty ? confirmBox("Wylogować bez zapisu?", "Ostatnie zmiany nie zostały zapisane (konflikt wersji). Zostaną zachowane jako szkic w tej przeglądarce.", "Wyloguj", go) : go();
   });
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !$("#modal").hidden) closeModal();
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(); }
   });
-  window.addEventListener("beforeunload", (e) => { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
+  window.addEventListener("beforeunload", (e) => { if (S.dirty || saving) { save(false, true); e.preventDefault(); e.returnValue = ""; } });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && S.dirty) save(false, true); });
   new ResizeObserver(fit).observe($("#pv-stage"));
 }
 
